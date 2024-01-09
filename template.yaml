@@ -1,0 +1,124 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: |
+  Deploy a Momento Webhook handler that posts to the Default EventBridge Bus.
+  Stack includes a Lambda, FunctionURL and Execution Role
+
+Parameters:
+  EventBridgeBus: 
+    Type: String
+    Default: default
+    Description: The EventBridge Bus to post to. Defaults to the Default EventBridge Bus.
+  MomentoSecretString: 
+    Type: String
+    Description: Webhook Secret String supplied from the Momento Webhook Console
+
+Mappings:
+  RegionToBucket:
+    us-east-1:
+      Bucket: us-east-1-pyle-momento
+    us-east-2:
+      Bucket: us-east-2-pyle-momento
+    us-west-2:
+      Bucket: pyletech-momento
+
+
+Resources:
+  MomentoWebhookSignatureKey:
+    Type: 'AWS::SecretsManager::Secret'
+    Properties:
+      Name: MomentoWebhookSecretKey
+      Description: "This is the Momento Webhook's Sercret String."
+      SecretString: !Sub         
+        - '{"momentoSecret":"${SecretString}"}'
+        - SecretString: !Ref 'MomentoSecretString'
+          
+  MomentoWebhookFunctionUrl:
+    Type: AWS::Lambda::Url
+    DependsOn: MomentoWebhookFunction
+    Properties:
+      AuthType: NONE
+      TargetFunctionArn: !GetAtt 'MomentoWebhookFunction.Arn'
+  MomentoWebhookFunctionUrlPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt 'MomentoWebhookFunction.Arn'
+      Action: lambda:InvokeFunctionUrl
+      FunctionUrlAuthType: NONE
+      Principal: '*'
+  MomentoWebhookFunction:
+    Type: AWS::Lambda::Function
+    DependsOn: MomentoWebhookFunctionRole
+    Properties:
+      Description: Momento Webhook Handler
+      Handler: bootstrap
+      Runtime: provided.al2
+      Role: !GetAtt 'MomentoWebhookFunctionRole.Arn'
+      Timeout: 5
+      Environment:
+        Variables:
+          EVENT_BUS_NAME: !Ref EventBridgeBus
+      Architectures:
+        - arm64
+      Code:
+        S3Bucket: !FindInMap 
+          - RegionToBucket
+          - !Ref 'AWS::Region'          
+          - Bucket               
+        S3Key: 'bootstrap.zip'
+      DeadLetterConfig:
+        TargetArn: !GetAtt 'MomentoWebhookFailedExecution.Arn'
+
+  MomentoWebhookFunctionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: MomentoWebhookLambdaRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+        Version: 2012-10-17
+      Policies:
+        - PolicyName: MomentoWebhookLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - events:PutEvents
+                Resource:
+                  - !Sub arn:aws:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBridgeBus}
+        - PolicyName: MomentoWebhookLambdaSecretPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - secretsmanager:GetResourcePolicy
+              - secretsmanager:GetSecretValue
+              - secretsmanager:DescribeSecret
+              - secretsmanager:ListSecretVersionIds
+              Resource:
+              - !Ref MomentoWebhookSignatureKey
+        - PolicyName: MomentoWebhookLambdaSQSPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - sqs:SendMessage
+              Resource:
+              - !GetAtt  MomentoWebhookFailedExecution.Arn
+
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AWSLambdaExecute
+  MomentoWebhookFailedExecution:
+    Type: AWS::SQS::Queue
+
+Outputs:
+  PublicMomentoWebhookFunctionUrl:
+    Description: Public URL for the Momento Webhook Function
+    Value: !GetAtt 'MomentoWebhookFunctionUrl.FunctionUrl'    

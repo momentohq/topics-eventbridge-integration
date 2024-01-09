@@ -1,0 +1,45 @@
+[package]
+name = "momento-webhook-handler"
+version = "0.1.0"
+edition = "2021"
+authors = ["Momemto"]
+
+# Starting in Rust 1.62 you can use `cargo add` to add dependencies 
+# to your project.
+#
+# If you're using an older Rust version,
+# download cargo-edit(https://github.com/killercup/cargo-edit#installation) 
+# to install the `add` subcommand.
+#
+# Running `cargo add DEPENDENCY_NAME` will
+# add the latest version of a dependency to the list,
+# and it will keep the alphabetic ordering for you.
+
+[dependencies]
+
+# Lambda dependencies
+lambda_runtime = "0.9.0"
+lambda_http = "0.9.0"
+
+## AWS SDK
+aws-config = { version = "1.1.1", features = ["behavior-version-latest"] }
+aws-sdk-eventbridge = "1.9.0"
+aws-sdk-secretsmanager = "1.11.0"
+
+# Asyn and tracing
+tokio = { version = "1", features = ["macros"] }
+tracing = { version = "0.1", features = ["log"] }
+tracing-subscriber = { version = "0.3", default-features = false, features = [
+    "fmt",
+    "json",
+] }
+
+# JSON and Serde/DeSerde
+serde_json = "1"
+serde = { version = "1.0.194", features = ["derive"] }
+
+# Handling HMAC
+hex-literal = "0.4.1"
+hex = "0.4.3"
+sha3 = { version = "0.10.8" }
+hmac = "0.12.1"
