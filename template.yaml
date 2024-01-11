@@ -15,11 +15,13 @@ Parameters:
 Mappings:
   RegionToBucket:
     us-east-1:
-      Bucket: us-east-1-pyle-momento
+      Bucket: us-east-1-momento-webhook-bucket
     us-east-2:
-      Bucket: us-east-2-pyle-momento
+      Bucket: us-east-1-momento-webhook-bucket
     us-west-2:
-      Bucket: pyletech-momento
+      Bucket: us-west-2-momento-webhook-bucket
+    eu-east-1: 
+      Bucket: eu-east-1-momento-webhook-bucket
 
 
 Resources:

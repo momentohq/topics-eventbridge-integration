@@ -126,10 +126,11 @@ async fn send_to_event_bridge(
     payload: &MomentoPayload,
     bus_name: &String,
 ) {
+    let detail_type = format!("{}#{}", payload.cache, payload.topic);
     let s = serde_json::to_string(&payload).expect("Error serde");
     let request = aws_sdk_eventbridge::types::builders::PutEventsRequestEntryBuilder::default()
-        .set_source(Some(String::from("webhook")))
-        .set_detail_type(Some(String::from("New Chat Message")))
+        .set_source(Some(String::from("Momento")))
+        .set_detail_type(Some(detail_type))
         .set_detail(Some(String::from(s)))
         .set_event_bus_name(Some(bus_name.clone()))
         .build();
