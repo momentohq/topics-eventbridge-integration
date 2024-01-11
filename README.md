@@ -32,7 +32,7 @@ The primary bucket defined in the above CDK code will be deployed in `us-west-2`
 
 ### Deploying the Webhook Handler
 
-![Webhook Architecture](./webhook_arch.png)
+![Webhook Architecture](./webhook_arch.jpg)
 
 #### Dependencies
 
