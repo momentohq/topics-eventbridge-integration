@@ -1,0 +1,68 @@
+## Deploying an AWS Lambda Webhook Handler
+
+Momento [webhooks](https://docs.momentohq.com/topics/webhooks/overview) are a purely Serverless way to connect a topic to a stateless consumer. This article will highlight how to deploy an AWS Lambda Function with a public URL which puts the message onto an EventBridge Bus.
+
+## Architecture
+
+The goal of this Webhook handler is to process the notification from Momento as quickly and securely as possible with the ultimate destination being AWS' EventBridge. But getting the message onto a bus, the possibilities for how to handle that data open up tremendously. The message could be persisted into more durable storage or even propogated to other consumers for further actions.
+
+![Webhook Architecture](./webhook_arch.jpg)
+
+## Installing the Handler
+
+Before starting the process, here are the steps that need to be taken to complete the deployment.
+
+1.  Create the Momento Webhook
+2.  An AWS Account with the ability to run CloudFormation. The CloudFormation tempalte will create the following resources so access to perform these is necassary.
+    -   Deploy a Lambda
+    -   Create the IAM Role for the Lambda
+    -   Create a Lambda Function URL
+    -   Create an SQS which serves as the Dead-Letter Queue
+    -   (Optional) The `default` Event Bus will be used but if an alternate is desired, that needs to be create ahead of time.
+3.  Update the Momento Webhook with the CloudFormation Output which will contain the Lambda Function URL
+
+### Creating the Momento Webhook
+
+To complete step one of setting up the webhook, log into the Momento Console. Navigate to "Caches" on the left navigation bar and select the Cache which will publish to the webhook.
+
+In order to create the webhook, a few simple details need to be supplied.
+
+![Webhook Creation](./creating_webhook.jpg)
+
+The three fields presented are important for different reasons.
+
+-   Webhook Name: this is the human-readable name for the webhook. It'll help with
+-   Topic Name: this is the topic that when published to will trigger the webhook
+-   Webhook Destination: the endpoint the webhook will POST to. _At this point, set it to a dummy value like https://none.com as it will be updated once the CloudFormation is deployed_
+
+### Deploying the Lambda via One-Click CloudFormation
+
+Momento has taken care of the heavy lifting when it comes to building a Lambda Webhook Handler in addition to supplying a CloudFormation stack for deploying the resources. Initiating the deploy is a simple as clicking this button. ![CloudFormation One-Click](./cloudformation-launch-stack.png)
+
+Deploying the stack will require signing into the AWS Console. Once that is completed, the CloudFormation Create Stack Screen should appear.
+
+![CloudFormation Create](./momento_stack.png)
+
+The stack will take care of the detailed parts of launching the infrastructure but there are opportunities to customize.
+
+-   Stack Name: will be the name of the stack when deployed
+-   Parameters
+    -   EventBridgeBus: when using a custom bus, enter it here. By default the `default` bus is used
+    -   MomentoSecretString: this is the secret string that Momento uses to sign the payload and sends as a part of the HTTP Headers in the webhook POST. This secret string is available in the Momento Webhook Console. Copy from the below screen and paste into this paramaeter
+
+![Momento Webhook Secret](./webhook_settings.jpg)
+
+### Update the Momento Webhook URL
+
+Upon completion of the Lambda Webhook Handler, take the Function URL from the CloudFormation Output and update the Momento Webhook URL in the Momento Console like the image one section above. Below is what the CloudFormation Output will look like.
+
+![CloudFormation Output](./cloudformation_output.jpg)
+
+### Notes and Wrapping Up
+
+At this point, a Momento Webhook is connected to a Lambda Function URL in a stateless manner. Updates that are posted to the topic will trigger the payload which the Lambda will process. A couple of notes about the handler before closing.
+
+1.  The Handler is designed reject requests whose published timestamps are older than 60 seconds. This helps protect spamming the handler with outdated messages.
+2.  The Lambda is deployed in an Amazon Managed Linux 2 environment built for ARM64 and the Graviton chipset. It is natively compiled from Rust using the AWS SDK built for Rust.
+
+With a Webhook Handler that publishes into an EventBridge Bus, the extensions are practically endless. And by leveraging a purely Serverless implementation, resources expand as needed and costs are $0 when messages aren't consumed.

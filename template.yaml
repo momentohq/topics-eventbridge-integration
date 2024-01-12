@@ -20,8 +20,8 @@ Mappings:
       Bucket: us-east-1-momento-webhook-bucket
     us-west-2:
       Bucket: us-west-2-momento-webhook-bucket
-    eu-east-1: 
-      Bucket: eu-east-1-momento-webhook-bucket
+    eu-west-1: 
+      Bucket: eu-west-1-momento-webhook-bucket
 
 
 Resources:

@@ -26,6 +26,8 @@ export class MomentoBucketsStack extends cdk.Stack {
         super(scope, id, props);
 
         const bucketName = `${props?.env?.region}-momento-webhook-bucket`;
+        console.log(`Creating bucket ${bucketName}`);
+
         const bucket = new Bucket(this, "ZipBucket", {
             bucketName: bucketName,
             removalPolicy: cdk.RemovalPolicy.RETAIN,
