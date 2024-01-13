@@ -64,6 +64,10 @@ The ultimate destination for this webhook handler is AWS' EventBridge. When work
 
 The Momento Lambda webhook handler puts each event from the webhook on the Event Bus with the following structure.
 
+### Example Event
+
+Below is a sample payload representing an EventBridge message as triggered from a Momento webhook. Note that this is a template and specific values will differ in your implementation.
+
 ```json
 {
     "version": "0",
@@ -86,13 +90,21 @@ The Momento Lambda webhook handler puts each event from the webhook on the Event
 }
 ```
 
-Points of note are:
+### Event Structure
 
--   detail-type: This value will always be a concatenated string in the format of `{cache-name}#{topic-name}` which are sourced from the webhook payload. Note the `#` in the middle of the dynamic values
--   source: The source will always be `Momento`
--   detail: The message detail will contain the actual payload as supplied from the webhook. By not removing elements from the message, maxium detail is provided to all consuming applications.
+The properties of the EventBridge message are listed below along with the function they provide.
 
-This highly standard and simple format aides to accelerate both speed of delivery and speed of development in extending this design.
+#### detail-type
+
+Detail-type is used to help filter out messages based upon the cache and topic source. Since the webhook handler can be used as a single gateway for multiple webhooks, filtering in EventBridge to drive certain values to certain targets is useful. This value will always be a concatenated string in the format of `{cache-name}#{topic-name}` which are sourced from the webhook payload. Note the `#` in the middle of the dynamic values.
+
+#### source
+
+The source will always be `Momento`. This property helps determine the origination point of the message.
+
+#### detail
+
+The message detail will contain the actual payload as supplied from the webhook. By not removing elements from the message, maxium detail is provided to all consuming applications. For reference, the Momento webhook payload fields are [described here.](https://docs.momentohq.com/topics/webhooks/overview#example-event)
 
 ## Notes and Wrapping Up
 
